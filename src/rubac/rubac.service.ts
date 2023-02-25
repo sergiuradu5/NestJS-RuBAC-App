@@ -1,23 +1,48 @@
-import {
-  BadRequestException,
-  Injectable, Logger
-} from '@nestjs/common';
+import { Workflow } from './decorators/workflows.enum';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
+import * as path from 'path';
 import { IUser } from 'src/users/types/user.interface';
-import { resolveParams, tryOperations } from './rubac.service.utils';
-import { IWorkflow } from './types/json-workflow.interface';
+import {
+  checkPath,
+  resolveRequestParams,
+  tryOperations,
+} from './rubac.service.utils';
+import {
+  IRule,
+  IWorkflow,
+  IWorkflowParams,
+} from './types/json-workflow.interface';
 import { IPreparedRules } from './types/prepared-rules.interface';
 import { IRequest } from './types/request.interface';
+
+type IWorkflowWithPreparedRules = {
+  PreparedRules: IPreparedRules;
+} & IWorkflow;
+
+interface IWorkflows {
+  [name: string]: IWorkflowWithPreparedRules;
+}
+
+interface IResolvedRequestParams {
+  [name: string]: string;
+}
+
+interface IRulesWithResolvedParams {
+  [ruleName: string]: {
+    operator: string;
+    fn: (...args: any[]) => boolean;
+    params: string[];
+  };
+}
 
 @Injectable()
 export class RubacService {
   private readonly logger = new Logger(RubacService.name);
-  private rulesPlainJson!: IWorkflow;
-  private preparedRules!: IPreparedRules;
+  private workflows!: IWorkflows;
   constructor() {
-    const rulesJsonPath = process.env.RULES_JSON_PATH;
-    fs.promises.readFile(rulesJsonPath, 'utf8').then((data) => {
-      this.parseJsonRules(data);
+    const rulesFolderPath = process.env.RULES_FOLDER;
+    this.loadAllWorkflows(rulesFolderPath).then((data) => {
       const test = this.testAgainstRules(
         {
           getRole() {
@@ -29,63 +54,116 @@ export class RubacService {
             return '100.100.100.100';
           },
           getPath() {
-            return 'admin/';
+            return 'admin/users';
           },
-        } as any,
+        },
+        Workflow.AllowOnlySpecificIpForAdmin,
       );
-      console.log(test);
     });
   }
 
-  private async parseJsonRules(jsonString: string) {
-    const json = JSON.parse(jsonString) as IWorkflow;
-    this.rulesPlainJson = json;
-    this.logger.log(`${json.WorkflowName} workflow loaded successfully`);
-    const preparedRules = this.rulesPlainJson.Rules.reduce(
-      (acc: IPreparedRules, rule) => {
-        // Try multiple operations
+  private async loadAllWorkflows(rulesFolderPath: string): Promise<void> {
+    const files = await fs.promises.readdir(rulesFolderPath, 'utf8');
+    this.workflows = {};
+    await Promise.all(
+      files.map(async (filePath) => {
+        const data = await fs.promises.readFile(
+          path.join(rulesFolderPath, filePath),
+          'utf-8',
+        );
+        await this.loadWorkflowWithPreparedRules(data);
+      }),
+    );
+  }
+
+  private async loadWorkflowWithPreparedRules(
+    jsonString: string,
+  ): Promise<void> {
+    const workflow = JSON.parse(jsonString) as IWorkflowWithPreparedRules;
+
+    // Transform a rule expression into an actual function
+    const preparedRules = workflow.Rules.reduce(
+      (acc: IPreparedRules, rule: IRule) => {
+        // Try multiple operation expressions and see which one matches
         const result = tryOperations(rule.Expression);
-        console.log(rule.Expression, result);
         if (!result) {
-          this.logger.warn(
-            `Rule Expression ${rule.Expression} could be translated into a function`,
+          throw new Error(
+            `Rule Expression ${rule.Expression} in workflow with id '${workflow.WorkflowID}' could not be translated into a function`,
           );
-          return acc;
         }
         acc[rule.RuleName] = result;
         return acc;
       },
-      {},
+      {} as IPreparedRules,
     );
-    if (Object.keys(preparedRules).length) {
-      this.preparedRules = preparedRules;
-    } else {
-      throw new Error(
-        `No rule expression could be translated from Workflow ${this.rulesPlainJson.WorkflowName} with id: ${this.rulesPlainJson.WorkflowID}`,
-      );
+
+    // If all rule expressions were translated correctly, assign the current workflow to the service
+    workflow.PreparedRules = preparedRules;
+    this.workflows[workflow.WorkflowID] = workflow;
+    this.logger.log(
+      `Workflow with id:${workflow.WorkflowID} loaded successfully: '${workflow.WorkflowName}'`,
+    );
+  }
+  /** Method for testing the current request and user against the selected workflow rules
+   * @param {IUser} user
+   * @param {IRequest} request
+   * @param {Workflow | string} workflowId
+   * @returns {boolean | undefined} Returns `undefined` if the request path and the one specified in the worklow do not match.
+   * Returns `true` or `false` whether the tested rules of the matching paths pass or don't pass
+   */
+  public testAgainstRules(
+    user: IUser,
+    request: IRequest,
+    workflowId: string,
+  ): boolean | undefined {
+    const isMatch = checkPath(
+      request.getPath(),
+      this.workflows[workflowId].Path,
+    );
+    if (!isMatch) {
+      return true;
     }
-    console.log('this.preparedRules', this.preparedRules);
+    console.log('preparedRules', this.workflows[workflowId].PreparedRules);
+    const resolvedRequestParams = this.resolveRequestParams(
+      workflowId,
+      user,
+      request,
+    );
+    console.log('resolvedRequestParams', resolvedRequestParams);
+    const rulesWithReplacedParams = this.replaceParamsInRules(
+      workflowId,
+      resolvedRequestParams,
+    );
+    console.log('rulesWithReplacedParams', rulesWithReplacedParams);
+    return this.executeRules(rulesWithReplacedParams, workflowId);
   }
 
-  public testAgainstRules(user: IUser, request: IRequest): boolean {
-    this.logger.log('testAgainstRules starts here');
-    // resolvedParams = { 'ip_address': '127.0.0.1' }; // Only resolved values
-    const preparedParams = this.rulesPlainJson.Params.reduce((acc, p) => {
-      const value = resolveParams(p.Expression, user, request);
-      if (value) {
-        acc[`$${p.Name}`] = value;
-      }
-      return acc;
-    }, {});
-    console.log('preparedParams', preparedParams);
-    const rulesWithReplacedParams = this.replaceParamsInRules(preparedParams);
-    console.log('replacedParams', rulesWithReplacedParams);
-    return this.executeRules(rulesWithReplacedParams);
+  private resolveRequestParams(
+    workflowId: string,
+    user: IUser,
+    request: IRequest,
+  ): IResolvedRequestParams {
+    const params = this.workflows[workflowId].Params.reduce(
+      (acc: IResolvedRequestParams, p: IWorkflowParams) => {
+        const value = resolveRequestParams(p.Expression, user, request);
+        if (value) {
+          acc[`$${p.Name}`] = value;
+        }
+        return acc;
+      },
+      {} as IResolvedRequestParams,
+    );
+    return params;
   }
 
-  private replaceParamsInRules(preparedParams: any) {
-    const rulesWithReplacedParams = {};
-    for (const [ruleName, obj] of Object.entries(this.preparedRules)) {
+  private replaceParamsInRules(
+    workflowId: string,
+    preparedParams: IResolvedRequestParams,
+  ): IRulesWithResolvedParams {
+    const rulesWithReplacedParams: IRulesWithResolvedParams = {};
+    for (const [ruleName, obj] of Object.entries(
+      this.workflows[workflowId].PreparedRules,
+    )) {
       const resolvedParams = obj.stringParams.map((sParam) => {
         if (sParam.startsWith('$')) {
           return preparedParams[sParam];
@@ -97,27 +175,38 @@ export class RubacService {
           `${sParam} parameter invalid in rule: ${ruleName}`,
         );
       });
-      rulesWithReplacedParams[ruleName] = { fn: obj.fn, resolvedParams, operator: obj.operator };
+      rulesWithReplacedParams[ruleName] = {
+        fn: obj.fn,
+        params: resolvedParams,
+        operator: obj.operator,
+      };
     }
     return rulesWithReplacedParams;
   }
 
-  private executeRules(rulesWithReplacedParams: any) {
+  private executeRules(
+    rulesWithReplacedParams: IRulesWithResolvedParams,
+    workflowId?: string,
+  ): boolean {
     for (const [ruleName, obj] of Object.entries(rulesWithReplacedParams)) {
-      const passesRule = (obj as any).fn(...(obj as any).resolvedParams);
+      const passesRule = obj.fn(...obj.params);
       if (passesRule) {
         this.logger.debug(`${ruleName} passed`);
         this.logger.verbose(
-          `${ruleName} returned true from execution: ${(obj as any).operator}(${
-            (obj as any).resolvedParams
-          })`,
+          `Returned true from execution: ${JSON.stringify(
+            { workflowId, ruleName, ...obj },
+            undefined,
+            2,
+          )})`,
         );
       } else {
         this.logger.debug(`${ruleName} did not pass`);
         this.logger.verbose(
-          `${ruleName} returned false from execution: ${
-            (obj as any).operator
-          }(${(obj as any).resolvedParams})`,
+          `Returned false from execution: ${JSON.stringify(
+            { workflowId, ruleName, ...obj },
+            undefined,
+            2,
+          )})`,
         );
         return false;
       }

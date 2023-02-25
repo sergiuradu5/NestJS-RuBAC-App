@@ -15,7 +15,7 @@
   "Rules": [
     {
       "RuleName": "Allow only specific IP",
-      "Expression": "$ip_address == '100.100.100.100'"
+      "Expression": "'100.100.100.100' == $ip_address"
     },
     {
       "RuleName": "Check role",

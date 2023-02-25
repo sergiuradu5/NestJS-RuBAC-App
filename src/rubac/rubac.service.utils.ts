@@ -3,21 +3,47 @@ import { IUser } from 'src/users/types/user.interface';
 import { IRequest } from './types/request.interface';
 import * as ipRange from 'ip-range-check';
 
-export function resolveParams(
+function cleanUpPath(path: string): string {
+  if (path.startsWith('/')) {
+    path = path.substring(1);
+  }
+  if (path.endsWith('/')) {
+    path = path.slice(0, path.length - 1);
+  }
+  return path;
+}
+
+export function checkPath(reqPath: string, rulePath: string): boolean {
+  reqPath = cleanUpPath(reqPath);
+  rulePath = cleanUpPath(rulePath);
+  const reqPathArr = reqPath.split('/');
+  const rulePathArr = rulePath.split('/');
+  for(const [ind, str ] of reqPathArr.entries()) {
+    const s = str.trim(),
+      rs = rulePathArr[ind].trim();
+    if (rs === '*') {
+      return true;
+    }
+    if (s !== rs) {
+      return false;
+    }
+  };
+  return true;
+}
+
+export function resolveRequestParams(
   expression: string,
   user: IUser,
   request: IRequest,
 ) {
   const definedParamExpressions = {
-    '$request.getIpAddress': request.getIpAddress(),
-    '$request.getPath': request.getPath(),
-    '$user.getRole': user.getRole(),
+    '$request.getIpAddress': request.getIpAddress() as string,
+    '$request.getPath': request.getPath() as string,
+    '$user.getRole': user.getRole() as string,
   };
   const res = definedParamExpressions[expression.trim()];
   return res;
 }
-
-export function resolveOperations(expression: string) {}
 
 /**
  * `tryOperations` takes a string expression and tries to find out which operation it matches
@@ -45,7 +71,7 @@ export function tryInOperation(expression: string): IOperation | undefined {
     return {
       stringParams,
       fn: inFn,
-      operator: 'in()'
+      operator: 'in()',
     };
   }
 }
@@ -72,13 +98,14 @@ export function tryIpRangeOperation(
     return {
       stringParams,
       fn: ipRange,
-      operator: 'ip_range()'
+      operator: 'ip_range()',
     };
   }
 }
 
 export function tryEqualsOperation(expression: string): IOperation | undefined {
-  const equalsRegExp = /^(\$[a-zA-Z_]\w*|'[^\']*')\s*==\s*(\$[a-zA-Z_]\w*|'[^\']*')$/;
+  const equalsRegExp =
+    /^(\$[a-zA-Z_]\w*|'[^\']*')\s*==\s*(\$[a-zA-Z_]\w*|'[^\']*')$/;
   const isEqual = equalsRegExp.test(expression);
 
   if (!isEqual) {
@@ -89,43 +116,7 @@ export function tryEqualsOperation(expression: string): IOperation | undefined {
     return {
       stringParams,
       fn: Object.is,
-      operator: '=='
+      operator: '==',
     };
   }
 }
-
-// function tryAsBinaryOperator<EntityClass>(
-//   operations: any[],
-//   expression: string,
-//   symbol: string,
-//   operator: (value: string) => FindOperator<string>,
-// ): boolean {
-//   const index = expression.indexOf(symbol);
-//   if (index === -1) {
-//     return false;
-//   }
-//   const key = expression.slice(0, index);
-//   const value = expression.slice(index + symbol.length);
-//   (factors as Record<string, FindOperator<string>>)[key] = operator(value);
-//   return true;
-// }
-
-// function extractOperationFromExpression(
-//   operations: any[], // operations is an array full of functions that will execute
-//   expression: string, //simple string expression, such as '$ip_address == 100.100.100.1
-// ) {
-//   tryAsBinaryOperator(operations, expression, '<=', LessThanOrEqual) ||
-//   tryAsBinaryOperator(operations, expression, '<', LessThan) ||
-//   tryAsBinaryOperator(operations, expression, '>=', MoreThanOrEqual) ||
-//   tryAsBinaryOperator(operations, expression, '>', MoreThan) ||
-//   tryAsBinaryOperator(operations, expression, '!~=', x => Not(ILike(`%${x}`))) ||
-//   tryAsBinaryOperator(operations, expression, '!=~', x => Not(ILike(`${x}%`))) ||
-//   tryAsBinaryOperator(operations, expression, '!~', x => Not(ILike(`%${x}%`))) ||
-//   tryAsBinaryOperator(operations, expression, '~=', x => ILike(`%${x}`)) ||
-//   tryAsBinaryOperator(operations, expression, '=~', x => ILike(`${x}%`)) ||
-//   tryAsBinaryOperator(operations, expression, '~', x => ILike(`%${x}%`)) ||
-//   tryAsBinaryOperator(operations, expression, '!=', x => Not(Equal(x))) ||
-//   tryAsBinaryOperator(operations, expression, '=', Equal) ||
-//   tryAsUnaryOperator(operations, expression, '!?', IsNull) ||
-//   tryAsUnaryOperator(operations, expression, '?', () => Not(IsNull()));
-// }

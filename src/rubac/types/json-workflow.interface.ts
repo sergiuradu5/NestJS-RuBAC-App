@@ -1,4 +1,4 @@
-export interface IRuleParams {
+export interface IWorkflowParams {
   Name: string;
   Expression: string;
 }
@@ -12,6 +12,6 @@ export interface IWorkflow {
   WorkflowID: number;
   WorkflowName: string;
   Path: string;
-  Params: IRuleParams[];
+  Params: IWorkflowParams[];
   Rules: IRule[];
 }

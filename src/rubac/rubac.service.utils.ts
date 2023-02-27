@@ -37,6 +37,11 @@ export function resolveRequestParams(
   request: IRequest,
 ) {
   const definedParamExpressions = {
+    // TODO: postoje samo dve vrste objekata, user i request
+    // Separate it on '.'
+    // Right of '.' is custom, and treat is as string
+    // { 'request':  request, 'user': user}
+  
     '$request.getIpAddress': request.getIpAddress() as string,
     '$request.getPath': request.getPath() as string,
     '$user.getRole': user.getRole() as string,

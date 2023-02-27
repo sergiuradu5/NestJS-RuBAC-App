@@ -14,19 +14,15 @@ const Spec: Array<SpecTuple> = [
   [/^\./, '.'],
   [/^\(/, '('],
   [/^\)/, ')'],
+  [/^\$/, '$'],
 
   // -----------------------
   // Numbers
   [/^\d+/, 'NUMBER'],
 
   // -----------------------
-  // $identifier for variables
-  [/^\$\w+/, 'VARIABLE'],
-
-  // -----------------------
   // Equality operator: ==
   [/^[!=]=/, 'EQUALITY_OPERATOR'],
-
 
   // -----------------------
   // Identifiers
@@ -84,7 +80,9 @@ export class Tokenizer {
       };
     }
     // Throw error if no Reg Exp matched
-    throw new SyntaxError(`Unexpected token: "${string[0]}"`);
+    throw new SyntaxError(
+      `Unexpected token: "${string[0]}" in string: "${this._string}"`,
+    );
   }
   /**
    * Checks whether there are more tokens left

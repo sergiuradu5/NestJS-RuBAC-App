@@ -29,23 +29,6 @@ export class RubacService {
         },
         {
           getIpAddress() {
-            return '100.100.100.1';
-          },
-          getPath() {
-            return 'admin/users';
-          },
-        },
-        WorkflowEnum.AllowOnlySpecificIpsForAdminAndSuperAdmin,
-      );
-
-      const test2 = this.testAgainstRules(
-        {
-          getRole() {
-            return 'ADMIN';
-          },
-        },
-        {
-          getIpAddress() {
             return '100.100.100.100';
           },
           getPath() {

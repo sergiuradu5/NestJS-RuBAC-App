@@ -20,11 +20,16 @@ type CallbackMap =
     }
   | CallbackMapWithNodeProp;
 
+type StringKeysObj = {
+  [name: string]: any;
+}
+
 /**
  * ExecutionEnvironment will contain all variables and functions needed for AST evaluation
  */
 export interface ExecutionEnvironment {
-  [name: string]: any;
+  vars: StringKeysObj
+  predefIdent: StringKeysObj
 }
 
 /**

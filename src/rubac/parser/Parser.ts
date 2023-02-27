@@ -73,7 +73,9 @@ export class Parser {
       case undefined:
         return left;
     }
-    throw new SyntaxError(`Unexpected token ${this._lookahead?.type}`);
+    throw new SyntaxError(
+      `Unexpected token "${this._lookahead?.type}" in string: "${this._string}"`,
+    );
   }
 
   /**
@@ -178,7 +180,7 @@ export class Parser {
    */
   Argument() {
     switch (this._lookahead.type) {
-      case 'VARIABLE':
+      case '$':
         return this.Variable();
       case 'IDENTIFIER':
         return this.Identifier();
@@ -229,7 +231,7 @@ export class Parser {
    */
   PrimaryExpression(): AstNode {
     switch (this._lookahead.type) {
-      case 'VARIABLE':
+      case '$':
         return this.Variable();
       case 'IDENTIFIER':
         return this.Identifier();
@@ -249,7 +251,7 @@ export class Parser {
     return {
       type: 'EqualityOperation',
       operator,
-      evaluate: (env, ...args: any[]) => {
+      evaluate: (env) => {
         const l = this._parseArgsForOperation(left.evaluate(env));
         const r = this._parseArgsForOperation(right.evaluate(env));
         const str = `${l}${operator}${r}`;
@@ -270,22 +272,30 @@ export class Parser {
 
   /**
    * Variable
-   *    : VARIABLE
+   *    : '$' Identifier
    */
   Variable(): AstNode {
-    const token = this._eat('VARIABLE');
-    const name = token.value;
-    return {
-      type: 'Variable',
-      evaluate: (env) => {
-        const value = this._resolveVariable(env[name]);
-        if (value === undefined) {
-          throw new ExecutionError(`Variable '${name}' could not be resolved`);
-        }
-        return value;
-      },
-      name,
-    };
+    this._eat('$');
+    if (this._lookahead.type === 'IDENTIFIER') {
+      const token = this._eat('IDENTIFIER');
+      const name = token.value;
+      return {
+        type: 'Variable',
+        evaluate: (env) => {
+          const value = this._resolveVariable(env.vars[name]);
+          if (value === undefined) {
+            throw new ExecutionError(
+              `Variable '${name}' could not be resolved`,
+            );
+          }
+          return value;
+        },
+        name,
+      };
+    }
+    throw new SyntaxError(
+      `Unexpected token "${this._lookahead.value}" in string: "${this._string}"`,
+    );
   }
 
   private _resolveVariable(value: any) {
@@ -308,7 +318,7 @@ export class Parser {
     return {
       type: 'Identifier',
       evaluate: (env) => {
-        const value = env[name];
+        const value = env.predefIdent[name];
         if (value === undefined) {
           //   throw new ExecutionError(
           //     `Identifier '${name}' could not be resolved`,
@@ -335,7 +345,9 @@ export class Parser {
         return this.StringLiteral();
     }
 
-    throw new SyntaxError(`Literal: unexpected literal production`);
+    throw new SyntaxError(
+      `Literal: unexpected literal production in string: "${this._string}"`,
+    );
   }
 
   /**
@@ -380,11 +392,13 @@ export class Parser {
   private _eat(tokenType: string) {
     const token = this._lookahead;
     if (token == null) {
-      throw new SyntaxError(`Unexpected end of input, expected "${tokenType}`);
+      throw new SyntaxError(
+        `Unexpected end of input, expected "${tokenType}" in string: "${this._string}"`,
+      );
     }
     if (token.type !== tokenType) {
       throw new SyntaxError(
-        `Unexpected token: "${token.value}", expected: "${tokenType}"`,
+        `Unexpected token: "${token.value}", expected: "${tokenType}" in string: "${this._string}"`,
       );
     }
     // Go to next token

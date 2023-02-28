@@ -41,10 +41,15 @@ Here is an example of the `Workflow` structure that should be provided to the ap
 ```
 
 ## Implementation
-There are two versions of the app. Solution in `V1` revolves around verbose regular expressions that are used to parse the `Expressions` in `Rules`. It is available on the branch `v1-regexp` of the current repository.
+There are two versions of the app.
 
+##### V1
+Solution in `V1` revolves around verbose regular expressions that are used to parse the `Expressions` in `Rules`. It is available on the branch `v1-regexp` of the current repository.
+
+##### V2
 However, `V2` of the app that is available on the `main` branch uses a different approach on parsing the `Expressions` in `Rules`. It borrows ideas from the parsing of programming language, using entities such as `Parser`, `Tokenizer`, and `Interpreter`. Concepts such as the Abstract Syntax Tree are used in the implementation.
 
+##### Pros and cons
 Though more robust and more extendable, the implementation in `V2` requires more knowledge in order to be maintained in comparison to `V1`. Nonetheless, it is a non-trivial approach with more power to it.
 
 ## App routes

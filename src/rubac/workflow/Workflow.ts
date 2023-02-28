@@ -47,7 +47,7 @@ export class Workflow implements IWorkflow {
 
   async executeRules(user: IUser, request: IRequest) {
     // Inserting predefined functions and `user` with `request` into this execution environment
-    let environment: ExecutionEnvironment = {
+    const environment: ExecutionEnvironment = {
       predefIdent: {
         ...PredefIdentSpec,
       },
@@ -56,18 +56,12 @@ export class Workflow implements IWorkflow {
         request: request,
       },
     };
-
+    
     // Evaluate Request Params with the current environment
     const resolvedReqParams = this.evaluateReqParams(environment);
-
+    
     // Update the current environment with the evaluations from previous step
-    environment = {
-      ...environment,
-      vars: {
-        ...environment.vars,
-        ...resolvedReqParams,
-      },
-    };
+    environment.vars = {...environment.vars, ...resolvedReqParams};
 
     // Evaluate Rules with the resolved Request Params now available inside the current execution environment
     const resultsFromRules = await this.evaluateRules(environment);

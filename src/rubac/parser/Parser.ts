@@ -134,7 +134,6 @@ export class Parser {
           return resolvedCallee(...resolvedArgs);
         }
         const str = `${resolvedCallee}(${resolvedArgs})`;
-        console.log(str);
         return eval(str);
       },
       callee,

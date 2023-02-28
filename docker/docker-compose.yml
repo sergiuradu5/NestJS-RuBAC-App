@@ -1,0 +1,11 @@
+services:
+  api:
+    image: sergiuradu/nest-rubac-app:latest
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      target: production
+    env_file:
+    - ../.env.dev
+    ports:
+      - 3000:3000

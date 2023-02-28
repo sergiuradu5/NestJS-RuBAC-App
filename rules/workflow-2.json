@@ -4,7 +4,7 @@
   "Path": "/admin/*",
   "Params": [
     {
-      "Name": "ip_address",
+      "Name": "x",
       "Expression": "$request.getIpAddress"
     },
     {
@@ -14,12 +14,12 @@
   ],
   "Rules": [
     {
-      "RuleName": "Allow only specific IP",
-      "Expression": "ip_range($ip_address, '100.100.100.1/28')"
+      "RuleName": "Allow only specific IPs",
+      "Expression": "ip_range($x, '100.100.100.1/28')"
     },
     {
       "RuleName": "Check role",
-      "Expression": "in($user_role, 'ADMIN', 'SUPER_ADMIN')"
+      "Expression": "in($user_role, 'ADMIN', 'SUPER_ADMIN', 'USER')"
     }
   ]
 }

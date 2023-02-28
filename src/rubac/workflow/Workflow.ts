@@ -64,6 +64,7 @@ export class Workflow implements IWorkflow {
     environment = {
       ...environment,
       vars: {
+        ...environment.vars,
         ...resolvedReqParams,
       },
     };

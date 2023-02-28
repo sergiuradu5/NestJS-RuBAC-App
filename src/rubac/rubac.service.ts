@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { IRulesConfig } from './../config/rules';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IUser } from 'src/users/types/user.interface';
@@ -15,29 +17,21 @@ interface IWorkflows {
 }
 
 @Injectable()
-export class RubacService {
+export class RubacService implements OnModuleInit {
   private readonly logger = new Logger(RubacService.name);
   private workflows!: IWorkflows;
-  constructor(private interpreter: Interpreter, private parser: Parser) {
-    const rulesFolderPath = process.env.RULES_FOLDER;
-    this.loadAllWorkflows(rulesFolderPath).then((data) => {
-      const test = this.testAgainstRules(
-        {
-          getRole() {
-            return 'ADMIN';
-          },
-        },
-        {
-          getIpAddress() {
-            return '100.100.100.100';
-          },
-          getPath() {
-            return 'admin/users';
-          },
-        },
-        WorkflowEnum.AllowOnlySpecificIpForAdmin,
-      );
-    });
+  constructor(
+    private interpreter: Interpreter,
+    private parser: Parser,
+    private configService: ConfigService,
+  ) {}
+
+  /**
+   * Initialize service with all workflows in an async way
+   */
+  public async onModuleInit() {
+    const rulesConfig = this.configService.get<IRulesConfig>('rules');
+    await this.loadAllWorkflows(rulesConfig.folderPath);
   }
 
   private async loadAllWorkflows(rulesFolderPath: string): Promise<void> {
@@ -59,7 +53,8 @@ export class RubacService {
   ): Promise<void> {
     const jsonWorkflow = JSON.parse(jsonString) as IWorkflow;
 
-    // During instantiation internal parser parses all expressions to check for syntactic accuracy
+    // During instantiation of workflow, internal parser parses all expressions to check for syntactic accuracy
+    // More checks are performed during this processs
     const workflow = new Workflow(jsonWorkflow, this.interpreter, this.parser);
 
     // If all rule expressions were parsed correctly, assign the current workflow to the service

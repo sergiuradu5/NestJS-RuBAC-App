@@ -14,7 +14,7 @@
   ],
   "Rules": [
     {
-      "RuleName": "Allow only specific IP",
+      "RuleName": "Allow only specific IPs",
       "Expression": "ip_range($ip_address, '100.100.100.1/28')"
     },
     {

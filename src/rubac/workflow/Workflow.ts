@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { IUser } from 'src/users/types/user.interface';
 import { CompilationError } from '../errors/errors';
 import { ExecutionEnvironment, Interpreter } from '../interpreter/Interpreter';
@@ -7,10 +7,13 @@ import {
   PredefIdentSpec,
 } from '../interpreter/predefined-env-identifiers';
 import { AstNode, Parser } from '../parser/Parser';
+import { EvaluatedRule } from '../types/evaluated-rule.interface';
 import { IRequest } from '../types/request.interface';
 import { IParams, IRule, IWorkflow } from './workflow.interface';
 
 export class Workflow implements IWorkflow {
+  private logger = new Logger(Workflow.name);
+
   WorkflowID: number;
   WorkflowName: string;
   Path: string;
@@ -31,6 +34,7 @@ export class Workflow implements IWorkflow {
       vars.push(`${param.Name}`);
       json.Params[idx].Ast = ast;
     }
+
     // Parsing of Rules
     for (const [idx, rule] of json.Rules.entries()) {
       const ast = this.parser.parse(rule.Expression);
@@ -66,7 +70,7 @@ export class Workflow implements IWorkflow {
 
     // Evaluate Rules with the resolved Request Params now available inside the current execution environment
     const resultsFromRules = await this.evaluateRules(environment);
-    return !resultsFromRules.some((res) => res === false);
+    return !resultsFromRules.some((res) => res.Evaluation === false);
   }
 
   /**
@@ -145,11 +149,17 @@ export class Workflow implements IWorkflow {
     });
   }
 
-  private async evaluateRules(env: ExecutionEnvironment) {
-    return Promise.all(
-      this.Rules.map((rule) => {
-        return this.interpreter.evaluate(rule.Ast, env);
+  private async evaluateRules(env: ExecutionEnvironment): Promise<EvaluatedRule[]> {
+    const results: EvaluatedRule[] = await Promise.all(
+      this.Rules.map(async (rule) => {
+        const result = {
+          RuleName: rule.RuleName,
+          Evaluation: await this.interpreter.evaluate(rule.Ast, env),
+        };
+        this.logger.debug(`Rule Evaluated: ${JSON.stringify(result)}`);
+        return result;
       }),
     );
+    return results;
   }
 }

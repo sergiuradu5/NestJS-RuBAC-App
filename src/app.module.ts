@@ -8,7 +8,11 @@ const ENV = process.env.NODE_ENV;
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: !ENV ? '.env.dev' : `.env.${ENV}`,
+      envFilePath: !ENV
+        ? '.env.dev'
+        : ENV === 'production'
+        ? '.env'
+        : `.env.${ENV}`,
     }),
     RubacModule,
   ],

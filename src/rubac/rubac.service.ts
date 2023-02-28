@@ -1,10 +1,9 @@
-import { IRulesConfig } from './../config/rules';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IUser } from 'src/users/types/user.interface';
-import { Workflow as WorkflowEnum } from './decorators/workflows.enum';
+import { IRulesConfig } from './../config/rules';
 import { Interpreter } from './interpreter/Interpreter';
 import { Parser } from './parser/Parser';
 import { checkPath } from './rubac.service.utils';

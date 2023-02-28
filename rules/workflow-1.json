@@ -19,7 +19,7 @@
     },
     {
       "RuleName": "Check role",
-      "Expression": "$user_role == 'ADMIN' == 'SUPER_ADMIN'"
+      "Expression": "$user_role == 'ADMIN'"
     }
   ]
 }

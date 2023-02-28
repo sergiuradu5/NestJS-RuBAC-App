@@ -149,14 +149,33 @@ export class Workflow implements IWorkflow {
     });
   }
 
-  private async evaluateRules(env: ExecutionEnvironment): Promise<EvaluatedRule[]> {
+  private async evaluateRules(
+    env: ExecutionEnvironment,
+  ): Promise<EvaluatedRule[]> {
+    const logEval = (
+      env: ExecutionEnvironment,
+      rule: IRule,
+      result: EvaluatedRule,
+    ) => {
+      this.logger.debug(`Rule Evaluated: ${JSON.stringify(result)}`);
+      this.logger.verbose(
+        `Environment: ${JSON.stringify(env, (key, value) => {
+          if (typeof value === 'function') {
+            return value.name;
+          }
+          return value;
+        })}`,
+      );
+      this.logger.verbose(`Expression: ${rule.Expression}`);
+    };
+
     const results: EvaluatedRule[] = await Promise.all(
       this.Rules.map(async (rule) => {
         const result = {
           RuleName: rule.RuleName,
           Evaluation: await this.interpreter.evaluate(rule.Ast, env),
         };
-        this.logger.debug(`Rule Evaluated: ${JSON.stringify(result)}`);
+        logEval(env, rule, result);
         return result;
       }),
     );

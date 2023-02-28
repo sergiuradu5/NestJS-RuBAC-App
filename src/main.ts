@@ -9,5 +9,7 @@ async function bootstrap() {
   // This allows client to "set" their own IP address and is used for testing purposes only of this app
   app.set('trust proxy', 1);
   await app.listen(3000);
+  console.log(`Nest RuBAC App is listening on ${await app.getUrl()}`);
 }
+
 bootstrap();

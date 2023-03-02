@@ -82,7 +82,6 @@ export class RubacService implements OnModuleInit {
       return true;
     }
     const result = await this.workflows[workflowId].executeRules(user, request);
-
     console.log(result);
 
     return result;

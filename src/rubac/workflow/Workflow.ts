@@ -26,7 +26,7 @@ export class Workflow implements IWorkflow {
     private parser: Parser,
   ) {
     // Parsing of Params
-    const vars = [];
+    const vars = ['user', 'request'];
     for (const [idx, param] of json.Params.entries()) {
       const ast = this.parser.parse(param.Expression);
       // Params are not full expressions but Variable, MemberExpressions with Variable, or Literal
@@ -96,6 +96,15 @@ export class Workflow implements IWorkflow {
           predefFunctions[node.name] === undefined
         ) {
           throw new CompilationError(`Function "${node.name} is not defined"`);
+        }
+
+        if (
+          parent.type !== 'MemberExpression' &&
+          predefFunctions[node.name] === undefined
+        ) {
+          throw new CompilationError(
+            `Identifier "${node.name}" is not defined`,
+          );
         }
       },
       Variable(node, parent) {

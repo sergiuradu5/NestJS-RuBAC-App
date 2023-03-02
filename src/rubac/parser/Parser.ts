@@ -64,18 +64,35 @@ export class Parser {
    *    | EqualityOperation
    */
   BinaryExpression() {
-    const left = this.UnaryExpression();
-    switch (this._lookahead?.type) {
-      case 'EQUALITY_OPERATOR':
-        return this.EqualityOperation(left);
-      case null:
-        return left;
-      case undefined:
-        return left;
+    return this._BinaryExpression('UnaryExpression', 'EQUALITY_OPERATOR');
+  }
+
+  /**
+   * Generic builder for Binary Expressions
+   */
+  private _BinaryExpression(builderName: string, operatorToken: string) {
+    let left = this[builderName]();
+
+    while (this._lookahead?.type === operatorToken) {
+      const operator = this._eat(operatorToken).value;
+      const leftEvaluate = left.evaluate;
+      const right = this[builderName]();
+
+      left = {
+        type: 'BinaryExpression',
+        operator,
+        left,
+        right,
+        evaluate: (env: ExecutionEnvironment) => {
+          const l = this._parseArgsForOperation(leftEvaluate(env));
+          const r = this._parseArgsForOperation(right.evaluate(env));
+          const str = `${l}${operator}${r}`;
+          return eval(str);
+        },
+      };
     }
-    throw new SyntaxError(
-      `Unexpected token "${this._lookahead?.type}" in string: "${this._string}"`,
-    );
+
+    return left;
   }
 
   /**
@@ -241,6 +258,7 @@ export class Parser {
   /**
    * EqualityOperation
    *    : Operand "==" Operand
+   *    | Operand "!=" Operand
    *
    */
   EqualityOperation(left: AstNode): AstNodeOperation {

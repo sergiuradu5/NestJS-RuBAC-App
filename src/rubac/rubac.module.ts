@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { Interpreter } from './interpreter/Interpreter';
-import { Parser } from './parser/Parser';
+import { Parser } from './parser/parser';
 import { RubacGuard } from './rubac.guard';
 import { RubacService } from './rubac.service';
 import rulesConfig from '../config/rules';

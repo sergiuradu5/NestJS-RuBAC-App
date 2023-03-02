@@ -6,7 +6,7 @@ import {
   IPredefIdentSpec,
   PredefIdentSpec,
 } from '../interpreter/predefined-env-identifiers';
-import { AstNode, Parser } from '../parser/Parser';
+import { AstNode, Parser } from '../parser/parser';
 import { EvaluatedRule } from '../types/evaluated-rule.interface';
 import { IRequest } from '../types/request.interface';
 import { IParams, IRule, IWorkflow } from './workflow.interface';
@@ -56,12 +56,12 @@ export class Workflow implements IWorkflow {
         request: request,
       },
     };
-    
+
     // Evaluate Request Params with the current environment
     const resolvedReqParams = this.evaluateReqParams(environment);
-    
+
     // Update the current environment with the evaluations from previous step
-    environment.vars = {...environment.vars, ...resolvedReqParams};
+    environment.vars = { ...environment.vars, ...resolvedReqParams };
 
     // Evaluate Rules with the resolved Request Params now available inside the current execution environment
     const resultsFromRules = await this.evaluateRules(environment);

@@ -17,11 +17,16 @@ const Spec: Array<SpecTuple> = [
   [/^\$/, '$'],
 
   // -----------------------
+  // Keywords
+  [/^\btrue\b/, 'true'],
+  [/^\bfalse\b/, 'false'],
+
+  // -----------------------
   // Numbers
   [/^\d+/, 'NUMBER'],
 
   // -----------------------
-  // Equality operator: ==
+  // Equality operators: == !=
   [/^[!=]=/, 'EQUALITY_OPERATOR'],
 
   // -----------------------

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ExecutionError } from '../errors/errors';
 import { ExecutionEnvironment } from '../interpreter/Interpreter';
-import { Tokenizer } from './Tokenizer';
+import { Tokenizer } from './tokenizer';
 
 interface AstNodeBase {
   type: string;
@@ -275,26 +275,19 @@ export class Parser {
    */
   Variable(): AstNode {
     this._eat('$');
-    if (this._lookahead.type === 'IDENTIFIER') {
-      const token = this._eat('IDENTIFIER');
-      const name = token.value;
-      return {
-        type: 'Variable',
-        evaluate: (env) => {
-          const value = this._resolveVariable(env.vars[name]);
-          if (value === undefined) {
-            throw new ExecutionError(
-              `Variable '${name}' could not be resolved`,
-            );
-          }
-          return value;
-        },
-        name,
-      };
-    }
-    throw new SyntaxError(
-      `Unexpected token "${this._lookahead.value}" in string: "${this._string}"`,
-    );
+    const token = this._eat('IDENTIFIER');
+    const name = token.value;
+    return {
+      type: 'Variable',
+      evaluate: (env) => {
+        const value = this._resolveVariable(env.vars[name]);
+        if (value === undefined) {
+          throw new ExecutionError(`Variable '${name}' could not be resolved`);
+        }
+        return value;
+      },
+      name,
+    };
   }
 
   private _resolveVariable(value: any) {
@@ -342,6 +335,10 @@ export class Parser {
         return this.NumericLiteral();
       case 'STRING':
         return this.StringLiteral();
+      case 'true':
+        return this.BooleanLiteral(true);
+      case 'false':
+        return this.BooleanLiteral(false);
     }
 
     throw new SyntaxError(
@@ -380,6 +377,22 @@ export class Parser {
       evaluate: () => {
         return value;
       },
+    };
+  }
+
+  /**
+   * BooleanLiteral
+   *    : true
+   *    | false
+   */
+  BooleanLiteral(value: boolean): AstNode {
+    const token = this._eat(value ? 'true' : 'false');
+    return {
+      type: 'BooleanLiteral',
+      evaluate: (env) => {
+        return value;
+      },
+      value,
     };
   }
 

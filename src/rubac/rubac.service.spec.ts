@@ -1,8 +1,8 @@
 import { Interpreter } from './interpreter/Interpreter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { RubacService } from './rubac.service';
-import { Workflow } from './workflow/Workflow';
-import { Parser } from './parser/Parser';
+import { Workflow } from './workflow/workflow';
+import { Parser } from './parser/parser';
 import { ConfigModule } from '@nestjs/config';
 import rulesConfig from '../config/rules';
 
@@ -11,7 +11,7 @@ describe('RubacService', () => {
 
   let mockInterpreter: Partial<Interpreter> = {
     evaluate: jest.fn(),
-    visit: jest.fn()
+    visit: jest.fn(),
   };
 
   let mockParser: Partial<Parser> = {
@@ -20,7 +20,7 @@ describe('RubacService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ load: [rulesConfig]})],
+      imports: [ConfigModule.forRoot({ load: [rulesConfig] })],
       providers: [
         RubacService,
         { provide: Interpreter, useValue: mockInterpreter },

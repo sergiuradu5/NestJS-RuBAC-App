@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AstNode } from '../parser/Parser';
+import { AstNode } from '../parser/parser';
 
 /**
  * Callback map
@@ -22,14 +22,14 @@ type CallbackMap =
 
 type StringKeysObj = {
   [name: string]: any;
-}
+};
 
 /**
  * ExecutionEnvironment will contain all variables and functions needed for AST evaluation
  */
 export interface ExecutionEnvironment {
-  vars: StringKeysObj
-  predefIdent: StringKeysObj
+  vars: StringKeysObj;
+  predefIdent: StringKeysObj;
 }
 
 /**

@@ -5,10 +5,10 @@ import * as path from 'path';
 import { IUser } from 'src/users/types/user.interface';
 import { IRulesConfig } from './../config/rules';
 import { Interpreter } from './interpreter/Interpreter';
-import { Parser } from './parser/Parser';
+import { Parser } from './parser/parser';
 import { checkPath } from './rubac.service.utils';
 import { IRequest } from './types/request.interface';
-import { Workflow } from './workflow/Workflow';
+import { Workflow } from './workflow/workflow';
 import { IWorkflow } from './workflow/workflow.interface';
 
 interface IWorkflows {
@@ -73,7 +73,7 @@ export class RubacService implements OnModuleInit {
     user: IUser,
     request: IRequest,
     workflowId: string,
-  ): Promise<boolean | undefined> {
+  ): Promise<boolean> {
     const isMatch = checkPath(
       request.getPath(),
       this.workflows[workflowId].Path,
@@ -84,7 +84,7 @@ export class RubacService implements OnModuleInit {
     const result = await this.workflows[workflowId].executeRules(user, request);
 
     console.log(result);
-    
+
     return result;
   }
 }

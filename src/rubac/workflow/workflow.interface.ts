@@ -1,4 +1,4 @@
-import { AstNode } from "../parser/Parser";
+import { AstNode } from '../parser/parser';
 
 export interface IParams {
   Name: string;
